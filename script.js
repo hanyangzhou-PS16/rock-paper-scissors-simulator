@@ -13,6 +13,9 @@ PAPER_IMAGE.src = "images/paper.png";
 const SPRITE_SPEED = 3;
 const SPRITE_SIZE = 50;
 
+let selectedSprite = null;
+let isDragging = false;
+
 class GameObject {
     constructor(image, x, y, speedX, speedY) {
         this.image = image;
@@ -37,6 +40,15 @@ class GameObject {
 
     draw() {
         ctx.drawImage(this.image, this.x, this.y, SPRITE_SIZE, SPRITE_SIZE);
+    }
+
+    checkCollision(other) {
+        return (
+            this.x < other.x + SPRITE_SIZE &&
+            this.x + SPRITE_SIZE > other.x &&
+            this.y < other.y + SPRITE_SIZE &&
+            this.y + SPRITE_SIZE > other.y
+        );
     }
 }
 
@@ -82,6 +94,39 @@ for (let i = 0; i < 10; i++) {
     gameObjects.push(new Paper(x, y));
 }
 
+canvas.addEventListener("mousedown", (event) => {
+    const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+    const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+
+    for (const gameObject of gameObjects) {
+        if (
+            mouseX >= gameObject.x &&
+            mouseX <= gameObject.x + SPRITE_SIZE &&
+            mouseY >= gameObject.y &&
+            mouseY <= gameObject.y + SPRITE_SIZE
+        ) {
+            selectedSprite = gameObject;
+            isDragging = true;
+            break;
+        }
+    }
+});
+
+canvas.addEventListener("mousemove", (event) => {
+    if (isDragging && selectedSprite) {
+        const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+        const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+
+        selectedSprite.x = mouseX - SPRITE_SIZE / 2;
+        selectedSprite.y = mouseY - SPRITE_SIZE / 2;
+    }
+});
+
+canvas.addEventListener("mouseup", () => {
+    isDragging = false;
+    selectedSprite = null;
+});
+
 function updateGame() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -90,7 +135,72 @@ function updateGame() {
         gameObject.draw();
     });
 
+    gameObjects.forEach((gameObject) => {
+        if (selectedSprite && selectedSprite !== gameObject && selectedSprite.checkCollision(gameObject)) {
+            handleCollision(selectedSprite, gameObject);
+        }
+    });
+
     requestAnimationFrame(updateGame);
+}
+
+function handleCollision(sprite1, sprite2) {
+    if (sprite1 instanceof Rock) {
+        if (sprite2 instanceof Scissors) {
+            sprite2.image = ROCK_IMAGE;
+            sprite2.constructor = Rock;
+            sprite2.speedX *= -1;
+            sprite2.speedY *= -1;
+            sprite1.speedX *= -1;
+            sprite1.speedY *= -1;
+        } else if (sprite2 instanceof Paper) {
+            sprite1.image = PAPER_IMAGE;
+            sprite1.constructor = Paper;
+            sprite2.speedX *= -1;
+            sprite2.speedY *= -1;
+            sprite1.speedX *= -1;
+            sprite1.speedY *= -1;
+        } else if (sprite2 instanceof Rock) {
+            sprite2.speedX *= -1;
+            sprite2.speedY *= -1;
+            sprite1.speedX *= -1;
+            sprite1.speedY *= -1;
+        }
+    } else if (sprite1 instanceof Scissors) {
+        if (sprite2 instanceof Paper) {
+            sprite2.image = SCISSORS_IMAGE;
+            sprite2.constructor = Scissors;
+        } else if (sprite2 instanceof Rock) {
+            sprite1.image = ROCK_IMAGE;
+            sprite1.constructor = Rock;
+            sprite2.speedX *= -1;
+            sprite2.speedY *= -1;
+            sprite1.speedX *= -1;
+            sprite1.speedY *= -1;
+        } else if (sprite2 instanceof Scissors) {
+            sprite2.speedX *= -1;
+            sprite2.speedY *= -1;
+            sprite1.speedX *= -1;
+            sprite1.speedY *= -1;
+        }
+    } else if (sprite1 instanceof Paper) {
+        if (sprite2 instanceof Rock) {
+            sprite2.image = PAPER_IMAGE;
+            sprite2.constructor = Paper;
+        } else if (sprite2 instanceof Scissors) {
+            sprite1.image = SCISSORS_IMAGE;
+            sprite1.constructor = Scissors;
+            sprite2.speedX *= -1;
+            sprite2.speedY *= -1;
+            sprite1.speedX *= -1;
+            sprite1.speedY *= -1;
+        } else if (sprite2 instanceof Paper) {
+            sprite2.speedX *= -1;
+            sprite2.speedY *= -1;
+            sprite1.speedX *= -1;
+            sprite1.speedY *= -1;
+        }
+    }
 }
 
 updateGame();
